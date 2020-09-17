@@ -3,10 +3,15 @@
  * Author: Zhimin Sun
  */
 #include "command.h"
-#include "io_utils.h"
 #include "error_status.h"
+#include "io_utils.h"
+#include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #define buffer_size 1026
@@ -38,22 +43,76 @@ mumsh_exec_cmd(char** cmd)
 }
 
 /**
+ * Counts the number of arguments behind redirection sign.
+ * 
+ * @param   cmd     Command and arguments
+ * @return          Number of arguments
+ */
+static int
+mumsh_redirection_argc(char** cmd)
+{
+    int num = 0;
+
+    for (; cmd[num] != NULL; num++) {
+        if (strcmp(cmd[num], ">") == 0 ||
+            strcmp(cmd[num], "<") == 0 ||
+            strcmp(cmd[num], "<<") == 0 ||
+            strcmp(cmd[num], ">>") == 0 ||
+            strcmp(cmd[num], "|") == 0) {
+                break;
+            }
+    }
+    return num;
+}
+
+/**
+ * Handles redirection of in.
+ * 
+ * @param   arg     Arguments
+ * @param   fd_in   File descriptor for input
+ */
+static void
+mumsh_redirection_in(const char* arg, int fd_in)
+{
+    int file;
+
+    file = open(arg, O_RDONLY);
+    dup2(file, fd_in);
+    close(file);
+}
+
+/**
  * Handles overall redirection.
  * 
  * @param   argv    Command and arguments
  * @param   size    Number of arguments
- * @return          Number of redirection needed
  */
-static int
+static void
 mumsh_redirection(char** argv, const int size)
 {
-    int num = 0;
+    int fd[2] = {STDIN_FILENO, STDOUT_FILENO};
+    int re_in = 0;
 
     for (int i = 0; i < size; i++) {
-        /* TODO: Redirection for out and append. */
+        if (strcmp(argv[i], "<") == 0) {
+            int argc;
+
+            argv[i] = NULL;
+            argc = mumsh_redirection_argc(&argv[i + 1]);
+            if (argc <= 0) {
+                mumsh_error(WRONG_REDIRECTION);
+            }
+            re_in = i + argc;
+        }
+    }
+    /* TODO: Redirection for out and append. */
+    if (!re_in) {
+        mumsh_exec_cmd(argv);
+    }
+    if (re_in) {
+        mumsh_redirection_in(argv[re_in], fd[0]);
     }
     mumsh_exec_cmd(argv);
-    return num;
 }
 
 void

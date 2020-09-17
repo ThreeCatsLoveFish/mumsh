@@ -44,8 +44,16 @@ mumsh_error(int error)
         printf("mumsh: Fork fail\n");
         break;
 
+    case FAIL_PIPE:
+        printf("mumsh: Pipe wrong\n");
+        break;
+
     case WRONG_CHILD:
         printf("mumsh: Child error\n");
+        break;
+
+    case WRONG_REDIRECTION:
+        printf("mumsh: Redirection arguments wrong\n");
         break;
 
     default:
