@@ -2,11 +2,11 @@
  * Course: 2020FA VE482
  * Author: Zhimin Sun
  */
-#include <sys/wait.h>
-#include <unistd.h>
 #include "command.h"
 #include "error_status.h"
 #include "io_utils.h"
+#include <sys/wait.h>
+#include <unistd.h>
 
 #define buffer_size 1026
 
@@ -27,7 +27,7 @@ main()
         if ((pid = fork()) < 0) {
             mumsh_error(FAIL_FORK);
         } else if (pid == 0) {
-            mumsh_exec_cmd(buffer);
+            mumsh_parse_cmd(buffer);
         }
         
         /* Parent waits until child killed. */
@@ -35,6 +35,5 @@ main()
         if (wait(&status) != pid) {
             mumsh_error(WRONG_CHILD);
         }
-        
     }
 }

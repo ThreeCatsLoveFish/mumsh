@@ -19,12 +19,48 @@ mumsh_exec_exit(const char* cmd)
     }
 }
 
+/**
+ * Executes command.
+ *
+ * Child process deals with command.
+ *
+ * @param   cmd     Command and arguments
+ */
+static void
+mumsh_exec_cmd(char** cmd)
+{
+    int error;
+
+    error = execvp(cmd[0], cmd);
+    if (error < 0) {
+        mumsh_wrong_cmd(cmd[0]);
+    }
+}
+
+/**
+ * Handles overall redirection.
+ * 
+ * @param   argv    Command and arguments
+ * @param   size    Number of arguments
+ * @return          Number of redirection needed
+ */
+static int
+mumsh_redirection(char** argv, const int size)
+{
+    int num = 0;
+
+    for (int i = 0; i < size; i++) {
+        /* TODO: Redirection for out and append. */
+    }
+    mumsh_exec_cmd(argv);
+    return num;
+}
+
 void
-mumsh_exec_cmd(char* cmd)
+mumsh_parse_cmd(char* cmd)
 {
     char*   found = NULL;
     char*   pos[buffer_size] = {0};
-    int     error = 0;
     int     index = 0;
 
     while ((found = strsep(&cmd, " \n")) != NULL) {
@@ -34,8 +70,10 @@ mumsh_exec_cmd(char* cmd)
         pos[index++] = found;
     }
     pos[index] = 0;
-    error = execvp(pos[0], pos);
-    if (error < 0) {
-        mumsh_wrong_cmd(pos[0]);
+
+    if (index > 1) {
+        mumsh_redirection(pos, index);
+    } else {
+        mumsh_exec_cmd(pos);
     }
 }

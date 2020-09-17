@@ -13,12 +13,10 @@
 void mumsh_exec_exit(const char* cmd);
 
 /**
- * Executes the command.
- *
- * Child process deals with command.
+ * Parses the command.
  *
  * @param  cmd     String of command
  */
-void mumsh_exec_cmd(char* cmd);
+void mumsh_parse_cmd(char* cmd);
 
 #endif // MUMSH_COMMAND_H
