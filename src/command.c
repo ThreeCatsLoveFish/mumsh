@@ -95,7 +95,7 @@ mumsh_redirection_out(const char* filename, int fd_out)
 {
     int file;
 
-    file = open(filename, O_WRONLY | O_CREAT);
+    file = open(filename, O_WRONLY|O_CREAT|O_TRUNC, 0777);
     dup2(file, fd_out);
     close(file);
 }
@@ -111,7 +111,7 @@ mumsh_redirection_append(const char* filename, int fd_out)
 {
     int file;
 
-    file = open(filename, O_APPEND | O_CREAT);
+    file = open(filename, O_WRONLY|O_CREAT|O_APPEND, 0777);
     dup2(file, fd_out);
     close(file);
 }
@@ -141,7 +141,6 @@ mumsh_redirection(char** argv, const int size)
             re_app = i + 1;
         }
     }
-    /* TODO: Redirection for append. */
     if (!re_in && !re_out && !re_app) {
         mumsh_exec_cmd(argv);
     }
@@ -150,8 +149,7 @@ mumsh_redirection(char** argv, const int size)
     }
     if (re_out) {
         mumsh_redirection_out(argv[re_out], fd[1]);
-    }
-    if (re_app) {
+    } else if (re_app) {
         mumsh_redirection_append(argv[re_app], fd[1]);
     }
     mumsh_exec_cmd(argv);
