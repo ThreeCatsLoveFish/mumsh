@@ -12,4 +12,13 @@
  */
 void mumsh_exec_exit(const char* cmd);
 
+/**
+ * Executes the command.
+ *
+ * Child process deals with command.
+ *
+ * @param  cmd     String of command
+ */
+void mumsh_exec_cmd(char* cmd);
+
 #endif // MUMSH_COMMAND_H

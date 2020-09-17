@@ -27,8 +27,7 @@ main()
         if ((pid = fork()) < 0) {
             mumsh_error(FAIL_FORK);
         } else if (pid == 0) {
-            /* TODO: Execute the command. */
-            return 0;
+            mumsh_exec_cmd(buffer);
         }
         
         /* Parent waits until child killed. */

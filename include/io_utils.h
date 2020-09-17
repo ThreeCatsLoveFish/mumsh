@@ -21,4 +21,11 @@ void mumsh_prompt(char* buffer);
  */
 void mumsh_error(int error);
 
+/**
+ * Prints wrong command error and exits.
+ *
+ * @param  cmd     String of command
+ */
+void mumsh_wrong_cmd(const char* cmd);
+
 #endif // MUMSH_IO_UTILS_H

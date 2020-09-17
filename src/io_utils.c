@@ -53,3 +53,10 @@ mumsh_error(int error)
     }
     exit(error);
 }
+
+void
+mumsh_wrong_cmd(const char* cmd)
+{
+    printf("%s: command not found\n", cmd);
+    mumsh_error(WRONG_COMMAND);
+}
