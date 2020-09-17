@@ -1,0 +1,8 @@
+# binary files
+build/
+release/
+mumsh
+mumsh_memory_check
+
+# manual
+doc/
