@@ -51,9 +51,9 @@ mumsh_exec_cmd(char** cmd)
 static int
 mumsh_redirection_argc(char** cmd)
 {
-    int num = 0;
+    int num = 1;
 
-    for (; cmd[num] != NULL; num++) {
+    for (cmd[0] = 0; cmd[num] != NULL; num++) {
         if (strcmp(cmd[num], ">") == 0 ||
             strcmp(cmd[num], "<") == 0 ||
             strcmp(cmd[num], "<<") == 0 ||
@@ -62,7 +62,10 @@ mumsh_redirection_argc(char** cmd)
                 break;
             }
     }
-    return num;
+    if (num == 1) {
+        mumsh_error(WRONG_REDIRECTION);
+    }
+    return num - 1;
 }
 
 /**
@@ -82,6 +85,22 @@ mumsh_redirection_in(const char* arg, int fd_in)
 }
 
 /**
+ * Handles redirection of out.
+ * 
+ * @param   arg     Arguments
+ * @param   fd_out  File descriptor for output
+ */
+static void
+mumsh_redirection_out(const char* arg, int fd_out)
+{
+    int file;
+
+    file = open(arg, O_WRONLY | O_CREAT);
+    dup2(file, fd_out);
+    close(file);
+}
+
+/**
  * Handles overall redirection.
  * 
  * @param   argv    Command and arguments
@@ -90,27 +109,27 @@ mumsh_redirection_in(const char* arg, int fd_in)
 static void
 mumsh_redirection(char** argv, const int size)
 {
-    int fd[2] = {STDIN_FILENO, STDOUT_FILENO};
-    int re_in = 0;
+    int fd[2]  = {STDIN_FILENO, STDOUT_FILENO};
+    int re_in  = 0;
+    int re_out = 0;
 
     for (int i = 0; i < size; i++) {
         if (strcmp(argv[i], "<") == 0) {
-            int argc;
-
-            argv[i] = NULL;
-            argc = mumsh_redirection_argc(&argv[i + 1]);
-            if (argc <= 0) {
-                mumsh_error(WRONG_REDIRECTION);
-            }
-            re_in = i + argc;
+            re_in = i + mumsh_redirection_argc(&argv[i]);
+        } else if (strcmp(argv[i], ">") == 0) {
+            mumsh_redirection_argc(&argv[i]);
+            re_out = i + 1;
         }
     }
-    /* TODO: Redirection for out and append. */
-    if (!re_in) {
+    /* TODO: Redirection for append. */
+    if (!re_in && !re_out) {
         mumsh_exec_cmd(argv);
     }
     if (re_in) {
         mumsh_redirection_in(argv[re_in], fd[0]);
+    }
+    if (re_out) {
+        mumsh_redirection_out(argv[re_out], fd[1]);
     }
     mumsh_exec_cmd(argv);
 }
