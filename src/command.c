@@ -34,7 +34,7 @@ mumsh_exec_cmd(char* cmd)
         pos[index++] = found;
     }
     pos[index] = 0;
-    error = execlp(pos[0], pos[0], NULL);
+    error = execvp(pos[0], pos);
     if (error < 0) {
         mumsh_wrong_cmd(pos[0]);
     }
