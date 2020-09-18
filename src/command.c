@@ -43,32 +43,6 @@ mumsh_exec_cmd(char** cmd)
 }
 
 /**
- * Counts the number of arguments behind redirection sign.
- * 
- * @param   cmd     Command and arguments
- * @return          Number of arguments
- */
-static int
-mumsh_redirection_argc(char** cmd)
-{
-    int num = 1;
-
-    for (cmd[0] = 0; cmd[num] != NULL; num++) {
-        if (strcmp(cmd[num], ">") == 0 ||
-            strcmp(cmd[num], "<") == 0 ||
-            strcmp(cmd[num], "<<") == 0 ||
-            strcmp(cmd[num], ">>") == 0 ||
-            strcmp(cmd[num], "|") == 0) {
-                break;
-            }
-    }
-    if (num == 1) {
-        mumsh_error(WRONG_REDIRECTION);
-    }
-    return num - 1;
-}
-
-/**
  * Handles redirection of in.
  * 
  * @param   filename    Filename
@@ -117,40 +91,23 @@ mumsh_redirection_append(const char* filename, int fd_out)
 }
 
 /**
- * Handles overall redirection.
+ * Finds the command and executes.
  * 
  * @param   argv    Command and arguments
- * @param   size    Number of arguments
+ * @param   repos   Parameters of redirection
  */
 static void
-mumsh_redirection(char** argv, const int size)
+mumsh_redirection(char** argv, char* repos[3])
 {
-    int fd[2]  = {STDIN_FILENO, STDOUT_FILENO};
-    int re_in  = 0;
-    int re_out = 0;
-    int re_app = 0;
-
-    for (int i = 0; i < size; i++) {
-        if (strcmp(argv[i], "<") == 0) {
-            re_in = i + mumsh_redirection_argc(&argv[i]);
-        } else if (strcmp(argv[i], ">") == 0) {
-            mumsh_redirection_argc(&argv[i]);
-            re_out = i + 1;
-        } else if (strcmp(argv[i], ">>") == 0) {
-            mumsh_redirection_argc(&argv[i]);
-            re_app = i + 1;
-        }
+    int fd[2] = {STDIN_FILENO, STDOUT_FILENO};
+    
+    if (repos[0] != NULL) {
+        mumsh_redirection_in(repos[0], fd[0]);
     }
-    if (!re_in && !re_out && !re_app) {
-        mumsh_exec_cmd(argv);
-    }
-    if (re_in) {
-        mumsh_redirection_in(argv[re_in], fd[0]);
-    }
-    if (re_out) {
-        mumsh_redirection_out(argv[re_out], fd[1]);
-    } else if (re_app) {
-        mumsh_redirection_append(argv[re_app], fd[1]);
+    if (repos[1] > repos[2]) {
+        mumsh_redirection_out(repos[1], fd[1]);
+    } else if (repos[2] != NULL) {
+        mumsh_redirection_append(repos[2], fd[1]);
     }
     mumsh_exec_cmd(argv);
 }
@@ -158,20 +115,52 @@ mumsh_redirection(char** argv, const int size)
 void
 mumsh_parse_cmd(char* cmd)
 {
-    char*   found = NULL;
+    char*   found            = NULL;
     char*   pos[buffer_size] = {0};
-    int     index = 0;
+    char*   repos[3]         = {NULL, NULL, NULL};
 
-    while ((found = strsep(&cmd, " \n")) != NULL) {
+    /* Finds the position of redirector. */
+    found = strchr(cmd, '<');
+    if (found) {
+        repos[0] = found + 1;
+    }
+    found = strchr(cmd, '>');
+    if (found) {
+        char*   tmp;
+        tmp = strchr(found + 1, '>');
+        if (tmp) {
+            repos[2] = tmp + 1;
+        } else {
+            repos[1] = found + 1;
+        }
+    }
+
+    /* Fixes offset of position. */
+    for (size_t i = 0; i < 3; i++) {
+        if (repos[i] == NULL) continue;
+        while (*repos[i] == ' ') repos[i]++;
+    }
+
+    /* Parses the string, replace special characters with '\0`. */
+    for (int i = 0, repeat = 0; (found = strsep(&cmd, " <>\n")) != NULL;) {
         if (*found == 0) {
             continue;
         }
-        pos[index++] = found;
+        for (size_t j = 0; j < 3; j++) {
+            if (found == repos[j]) {
+                repeat = 1;
+            }
+        }
+        if (repeat == 1) {
+            repeat = 0;
+            continue;
+        }
+        pos[i++] = found;
     }
-    pos[index] = 0;
 
-    if (index > 1) {
-        mumsh_redirection(pos, index);
+    /* Executes the command. */
+    if (repos[0] || repos[1] || repos[2]) {
+        mumsh_redirection(pos, repos);
     } else {
         mumsh_exec_cmd(pos);
     }
