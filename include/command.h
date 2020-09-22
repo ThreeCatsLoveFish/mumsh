@@ -17,6 +17,6 @@ void mumsh_exec_exit(const char* cmd);
  *
  * @param  cmd     String of command
  */
-void mumsh_parse_cmd(char* cmd);
+void mumsh_parse(char* cmd);
 
 #endif // MUMSH_COMMAND_H

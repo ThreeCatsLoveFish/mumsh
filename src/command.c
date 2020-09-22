@@ -27,8 +27,6 @@ mumsh_exec_exit(const char* cmd)
 /**
  * Executes command.
  *
- * Child process deals with command.
- *
  * @param   cmd     Command and arguments
  */
 static void
@@ -91,7 +89,7 @@ mumsh_redirection_append(const char* filename, int fd_out)
 }
 
 /**
- * Finds the command and executes.
+ * Handles the redirection of the command.
  * 
  * @param   argv    Command and arguments
  * @param   repos   Parameters of redirection
@@ -112,7 +110,14 @@ mumsh_redirection(char** argv, char* repos[3])
     mumsh_exec_cmd(argv);
 }
 
-void
+/**
+ * Parses a single command.
+ *
+ * Handles the redirection signs in the command.
+ *
+ * @param  cmd     String of command
+ */
+static void
 mumsh_parse_cmd(char* cmd)
 {
     char*   found            = NULL;
@@ -164,4 +169,68 @@ mumsh_parse_cmd(char* cmd)
     } else {
         mumsh_exec_cmd(pos);
     }
+}
+
+void
+mumsh_parse(char* cmd)
+{
+    __pid_t pid;
+    char*   found            = NULL;
+    char*   pos[buffer_size] = {0};
+    int     fd_prev[2]       = {0};
+    size_t  count            = 0;
+
+    /* Parses the string, replace pipe with '\0`. */
+    while ((found = strsep(&cmd, "|\n")) != NULL) {
+        if (*found == 0) {
+            continue;
+        }
+        pos[count++] = found;
+    }
+
+    /* No pipe. */
+    if (count == 1) {
+        mumsh_parse_cmd(pos[0]);
+    }
+    
+    /* Execute every single command. */
+    for (size_t i = 0; i < count; i++) {
+        int fd_curr[2];
+
+        if (i != count - 1) {
+            if (pipe(fd_curr) == -1) {
+                mumsh_error(FAIL_PIPE);
+            }
+            fd_prev[1] = fd_curr[1];
+        } else {
+            fd_prev[1] = STDOUT_FILENO;
+        }
+        if ((pid = fork()) < 0) {
+            mumsh_error(FAIL_FORK);
+        } else if (pid == 0) {
+            if (fd_prev[0] != STDIN_FILENO) {
+                dup2(fd_prev[0], STDIN_FILENO);
+                close(fd_prev[0]);
+            }
+            if (fd_prev[1] != STDOUT_FILENO) {
+                dup2(fd_prev[1], STDOUT_FILENO);
+                close(fd_prev[1]);
+            }
+            if (i != count - 1) {
+                close(fd_curr[0]);
+            }
+            mumsh_parse_cmd(pos[i]);
+        }
+        if (fd_prev[0] != STDIN_FILENO) {
+            close(fd_prev[0]);
+        }
+        if (fd_prev[1] != STDOUT_FILENO) {
+            close(fd_prev[1]);
+        }
+        fd_prev[0] = fd_curr[0];
+    }
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    waitpid(pid, NULL, 0);
+    exit(NORMAL_EXIT);
 }

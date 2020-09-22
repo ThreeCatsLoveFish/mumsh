@@ -27,12 +27,11 @@ main()
         if ((pid = fork()) < 0) {
             mumsh_error(FAIL_FORK);
         } else if (pid == 0) {
-            mumsh_parse_cmd(buffer);
+            mumsh_parse(buffer);
         }
         
         /* Parent waits until child killed. */
-        int status;
-        if (wait(&status) != pid) {
+        if (wait(NULL) != pid) {
             mumsh_error(WRONG_CHILD);
         }
     }
