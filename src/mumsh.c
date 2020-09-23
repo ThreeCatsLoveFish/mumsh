@@ -5,6 +5,7 @@
 #include "command.h"
 #include "error_status.h"
 #include "io_utils.h"
+#include <signal.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -17,6 +18,9 @@ main()
         __pid_t  pid;
         char     buffer[buffer_size];
 
+        /* Handle CTRL-C for parent. */
+        signal(SIGINT, interrupt_parent);
+
         /* Prompts user for input. */
         mumsh_prompt(buffer);
 
@@ -27,6 +31,9 @@ main()
         if (mumsh_chdir(buffer) == 0) {
             continue;
         }
+
+        /* Handle CTRL-C for child. */
+        signal(SIGINT, interrupt_child);
 
         /* Create child process. */
         if ((pid = fork()) < 0) {

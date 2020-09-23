@@ -6,13 +6,25 @@
 #define MUMSH_IO_UTILS_H
 
 /**
- * Prompts user for input in mumsh. 
- * 
- * This function handles the `SIGINT` signal.
+ * Prompts user for input in mumsh.
  * 
  * @param  buffer   Pointer to buffer
  */
 void mumsh_prompt(char* buffer);
+
+/**
+ * Handles the `SIGINT` signal for parent.
+ * 
+ * @param  signal  Input signal
+ */
+void interrupt_parent(int signal);
+
+/**
+ * Handles the `SIGINT` signal for child.
+ * 
+ * @param  signal  Input signal
+ */
+void interrupt_child(int signal);
 
 /**
  * Prints error information and exits. 

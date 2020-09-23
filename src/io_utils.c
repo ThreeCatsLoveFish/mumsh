@@ -8,6 +8,9 @@
 #include <stdlib.h>
 #include <signal.h>
 
+/**
+ * Input hit for mumsh.
+ */
 static void
 mumsh_prefix(void)
 {
@@ -15,16 +18,27 @@ mumsh_prefix(void)
     fflush(stdout);
 }
 
-static void
-interrupt(int signal)
+void
+interrupt_parent(int signal)
 {
     if (signal != SIGINT) return;
     printf("\n");
     mumsh_prefix();
 }
 
+void
+interrupt_child(int signal)
+{
+    if (signal != SIGINT) return;
+    printf("\n");
+    fflush(stdout);
+}
+
+/**
+ * Determines the end of file.
+ */
 static void
-end_of_file()
+end_of_file(void)
 {
     if (feof(stdin)) exit(NORMAL_EXIT);
     int c = getc(stdin);
@@ -35,8 +49,6 @@ end_of_file()
 void
 mumsh_prompt(char* buffer)
 {
-    signal(SIGINT, interrupt);
-
     mumsh_prefix();
     end_of_file();
     fgets(buffer, 1026, stdin);
