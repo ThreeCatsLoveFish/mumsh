@@ -52,6 +52,10 @@ mumsh_error(int error)
         printf("mumsh: Child error\n");
         break;
 
+    case WRONG_PWD:
+        printf("mumsh: Wrong parameter of directory\n");
+        break;
+
     case WRONG_REDIRECTION:
         printf("mumsh: Redirection arguments wrong\n");
         break;

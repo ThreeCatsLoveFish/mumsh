@@ -24,6 +24,37 @@ mumsh_exec_exit(const char* cmd)
     }
 }
 
+int
+mumsh_chdir(const char* cmd)
+{
+    if (strncmp(cmd, "cd ", 3) == 0) {
+        int     error;
+        char*   endl;
+
+        endl = strchr(cmd, '\n');
+        *endl = 0;
+        error = chdir(&cmd[3]);
+        if (error != 0) {
+            mumsh_error(WRONG_PWD);
+        }
+        return 0;
+    }
+    return 1;
+}
+
+static void
+mumsh_pwd(const char* cmd)
+{
+    if (strncmp(cmd, "pwd", 3) == 0) {
+        char*   pwd = NULL;
+
+        pwd = getcwd(pwd, buffer_size);
+        printf("%s\n", pwd);
+        free(pwd);
+        exit(NORMAL_EXIT);
+    }
+}
+
 /**
  * Executes command.
  *
@@ -34,6 +65,7 @@ mumsh_exec_cmd(char** cmd)
 {
     int error;
 
+    mumsh_pwd(cmd[0]);
     error = execvp(cmd[0], cmd);
     if (error < 0) {
         mumsh_wrong_cmd(cmd[0]);
@@ -171,8 +203,15 @@ mumsh_parse_cmd(char* cmd)
     }
 }
 
-void
-mumsh_parse(char* cmd)
+/**
+ * Parses the whole command.
+ *
+ * Handles the pipe in the command.
+ *
+ * @param  cmd     String of command
+ */
+static void
+mumsh_parse_pipe(char* cmd)
 {
     __pid_t pid;
     char*   found            = NULL;
@@ -233,4 +272,10 @@ mumsh_parse(char* cmd)
     close(STDOUT_FILENO);
     waitpid(pid, NULL, 0);
     exit(NORMAL_EXIT);
+}
+
+void
+mumsh_parse(char* cmd)
+{
+    mumsh_parse_pipe(cmd);
 }

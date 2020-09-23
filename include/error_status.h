@@ -11,7 +11,8 @@ typedef enum error {
     FAIL_PIPE         = 2,
     WRONG_CHILD       = 3,
     WRONG_COMMAND     = 4,
-    WRONG_REDIRECTION = 5,
+    WRONG_PWD         = 5,
+    WRONG_REDIRECTION = 6,
 } error_t;
 
 #endif // MUMSH_ERROR_STATUS_H

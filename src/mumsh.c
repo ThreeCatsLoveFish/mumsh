@@ -22,7 +22,12 @@ main()
 
         /* Exit mumsh normally. */
         mumsh_exec_exit(buffer);
-        
+
+        /* Change working directory. */
+        if (mumsh_chdir(buffer) == 0) {
+            continue;
+        }
+
         /* Create child process. */
         if ((pid = fork()) < 0) {
             mumsh_error(FAIL_FORK);
