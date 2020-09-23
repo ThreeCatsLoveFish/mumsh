@@ -23,12 +23,22 @@ interrupt(int signal)
     mumsh_prefix();
 }
 
+static void
+end_of_file()
+{
+    if (feof(stdin)) exit(NORMAL_EXIT);
+    int c = getc(stdin);
+    if (c == EOF) mumsh_error(NORMAL_EXIT);
+    ungetc(c, stdin);
+}
+
 void
 mumsh_prompt(char* buffer)
 {
     signal(SIGINT, interrupt);
-    
+
     mumsh_prefix();
+    end_of_file();
     fgets(buffer, 1026, stdin);
 }
 

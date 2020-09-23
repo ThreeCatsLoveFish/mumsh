@@ -42,6 +42,11 @@ mumsh_chdir(const char* cmd)
     return 1;
 }
 
+/**
+ * Handles built-in `pwd` command.
+ *
+ * @param   cmd     Command
+ */
 static void
 mumsh_pwd(const char* cmd)
 {
