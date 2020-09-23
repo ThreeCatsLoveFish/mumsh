@@ -275,7 +275,9 @@ mumsh_parse_pipe(char* cmd)
     }
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
-    waitpid(pid, NULL, 0);
+    for (size_t i = 0; i < count; i++) {
+        wait(NULL);
+    }
     exit(NORMAL_EXIT);
 }
 
