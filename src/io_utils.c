@@ -9,7 +9,7 @@
 #include <signal.h>
 
 /**
- * Input hit for mumsh.
+ * Outputs prefix for mumsh.
  */
 static void
 mumsh_prefix(void)
