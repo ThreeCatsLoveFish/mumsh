@@ -35,29 +35,34 @@ interrupt_child(int signal)
 }
 
 /**
- * Determines the end of file.
+ * Handles input and determines EOF.
  */
 static void
-end_of_file(void)
+mumsh_getcmd(char* buffer)
 {
-    int c;
-
-    if (feof(stdin)) {
-        mumsh_error(NORMAL_EXIT);
+    for (int i = 0, ch = 0; (ch = getchar()) != 0;) {
+        if (ch == EOF) {
+            if (i == 0) {
+                mumsh_error(NORMAL_EXIT);
+            } else {
+                clearerr(stdin);
+                continue;
+            }
+        } else {
+            buffer[i++] = ch;
+            if (ch == '\n') {
+                buffer[i] = '\0';
+                return;
+            }
+        }
     }
-    c = getchar();
-    if (c == EOF) {
-        mumsh_error(NORMAL_EXIT);
-    }
-    ungetc(c, stdin);
 }
 
 void
 mumsh_prompt(char* buffer)
 {
     mumsh_prefix();
-    end_of_file();
-    fgets(buffer, 1026, stdin);
+    mumsh_getcmd(buffer);
 }
 
 void
