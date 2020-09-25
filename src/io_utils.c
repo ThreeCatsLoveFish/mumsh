@@ -40,9 +40,15 @@ interrupt_child(int signal)
 static void
 end_of_file(void)
 {
-    if (feof(stdin)) exit(NORMAL_EXIT);
-    int c = getc(stdin);
-    if (c == EOF) mumsh_error(NORMAL_EXIT);
+    int c;
+
+    if (feof(stdin)) {
+        mumsh_error(NORMAL_EXIT);
+    }
+    c = getchar();
+    if (c == EOF) {
+        mumsh_error(NORMAL_EXIT);
+    }
     ungetc(c, stdin);
 }
 
