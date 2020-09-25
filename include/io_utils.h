@@ -40,4 +40,16 @@ void mumsh_error(int error);
  */
 void mumsh_wrong_cmd(const char* cmd);
 
+/**
+ * Prints error message and exits.
+ */
+void mumsh_wrong_cd_args(void);
+
+/**
+ * Prints wrong path and exits.
+ *
+ * @param  path    String of path
+ */
+void mumsh_wrong_path(const char* path);
+
 #endif // MUMSH_IO_UTILS_H

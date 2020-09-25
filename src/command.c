@@ -25,21 +25,44 @@ mumsh_exec_exit(const char* cmd)
 }
 
 int
-mumsh_chdir(const char* cmd)
+mumsh_chdir(char* cmd)
 {
-    if (strncmp(cmd, "cd ", 3) == 0) {
-        int     error;
-        char*   endl;
+    if (strncmp(cmd, "cd\n", 3) != 0 && strncmp(cmd, "cd ", 3) != 0) {
+        return 1;
+    } else {
+        char*   found = NULL;
+        char*   path  = NULL;
+        int     argc  = 0;
 
-        endl = strchr(cmd, '\n');
-        *endl = 0;
-        error = chdir(&cmd[3]);
-        if (error != 0) {
-            mumsh_error(WRONG_PWD);
+        while ((found = strsep(&cmd, " \n")) != NULL) {
+            if (*found == 0) {
+                continue;
+            }
+            if (argc++ == 1) {
+                path = found;
+            } else if (argc >= 2) {
+                mumsh_wrong_cd_args();
+                return NORMAL_EXIT;
+            }
         }
-        return 0;
+        if (argc == 1) {
+            char*   home;
+
+            home = getenv("HOME");
+            if (home == NULL) {
+                mumsh_wrong_cd_args();
+            }
+            chdir(home);
+        } else {
+            int error;
+
+            error = chdir(path);
+            if (error != 0) {
+                mumsh_wrong_path(path);
+            }
+        }
+        return NORMAL_EXIT;
     }
-    return 1;
 }
 
 /**

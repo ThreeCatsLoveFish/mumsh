@@ -16,9 +16,9 @@ void mumsh_exec_exit(const char* cmd);
  * Handles directory change.
  *
  * @param  cmd     String of command
- * @return         0 on success, 1 for no pwd command
+ * @return         0 on success, 1 for no cd command
  */
-int mumsh_chdir(const char* cmd);
+int mumsh_chdir(char* cmd);
 
 /**
  * Parses the command.

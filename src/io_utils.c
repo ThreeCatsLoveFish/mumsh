@@ -85,10 +85,6 @@ mumsh_error(int error)
         printf("mumsh: Child error\n");
         break;
 
-    case WRONG_PWD:
-        printf("mumsh: Wrong parameter of directory\n");
-        break;
-
     case WRONG_REDIRECTION:
         printf("mumsh: Redirection arguments wrong\n");
         break;
@@ -104,4 +100,16 @@ mumsh_wrong_cmd(const char* cmd)
 {
     printf("%s: command not found\n", cmd);
     mumsh_error(WRONG_COMMAND);
+}
+
+void
+mumsh_wrong_cd_args(void)
+{
+    printf("mumsh: cd: too many arguments\n");
+}
+
+void
+mumsh_wrong_path(const char* path)
+{
+    printf("mumsh: cd: %s: No such file or directory\n", path);
 }
