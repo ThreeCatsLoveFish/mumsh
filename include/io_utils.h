@@ -50,6 +50,20 @@ void mumsh_wrong_cd_args(void);
  *
  * @param  path    String of path
  */
-void mumsh_wrong_path(const char* path);
+void mumsh_wrong_cd_path(const char* path);
+
+/**
+ * Prints wrong path and exits.
+ *
+ * @param  path    String of path
+ */
+void mumsh_wrong_redirect_in(const char* path);
+
+/**
+ * Prints wrong path and exits.
+ *
+ * @param  path    String of path
+ */
+void mumsh_wrong_redirect_out(const char* path);
 
 #endif // MUMSH_IO_UTILS_H

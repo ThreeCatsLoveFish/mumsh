@@ -49,16 +49,13 @@ mumsh_chdir(char* cmd)
             char*   home;
 
             home = getenv("HOME");
-            if (home == NULL) {
-                mumsh_wrong_cd_args();
-            }
             chdir(home);
         } else {
             int error;
 
             error = chdir(path);
             if (error != 0) {
-                mumsh_wrong_path(path);
+                mumsh_wrong_cd_path(path);
             }
         }
         return NORMAL_EXIT;
@@ -112,6 +109,9 @@ mumsh_redirection_in(const char* filename, int fd_in)
     int file;
 
     file = open(filename, O_RDONLY);
+    if (file < 0) {
+        mumsh_wrong_redirect_in(filename);
+    }
     dup2(file, fd_in);
     close(file);
 }
@@ -128,6 +128,9 @@ mumsh_redirection_out(const char* filename, int fd_out)
     int file;
 
     file = open(filename, O_WRONLY|O_CREAT|O_TRUNC, 0777);
+    if (file < 0) {
+        mumsh_wrong_redirect_out(filename);
+    }
     dup2(file, fd_out);
     close(file);
 }
@@ -144,6 +147,9 @@ mumsh_redirection_append(const char* filename, int fd_out)
     int file;
 
     file = open(filename, O_WRONLY|O_CREAT|O_APPEND, 0777);
+    if (file < 0) {
+        mumsh_wrong_redirect_out(filename);
+    }
     dup2(file, fd_out);
     close(file);
 }
@@ -183,6 +189,7 @@ mumsh_parse_cmd(char* cmd)
     char*   found            = NULL;
     char*   pos[buffer_size] = {0};
     char*   repos[3]         = {NULL, NULL, NULL};
+    int     count            = 0;
 
     /* Finds the position of redirector. */
     found = strchr(cmd, '<');
@@ -207,7 +214,7 @@ mumsh_parse_cmd(char* cmd)
     }
 
     /* Parses the string, replace special characters with '\0`. */
-    for (int i = 0, repeat = 0; (found = strsep(&cmd, " <>\n")) != NULL;) {
+    for (int repeat = 0; (found = strsep(&cmd, " <>\n")) != NULL;) {
         if (*found == 0) {
             continue;
         }
@@ -220,7 +227,7 @@ mumsh_parse_cmd(char* cmd)
             repeat = 0;
             continue;
         }
-        pos[i++] = found;
+        pos[count++] = found;
     }
 
     /* Executes the command. */

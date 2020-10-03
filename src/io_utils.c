@@ -81,12 +81,20 @@ mumsh_error(int error)
         printf("mumsh: Pipe wrong\n");
         break;
 
+    case WRONG_PROGRAM:
+        printf("error: missing program\n");
+        break;
+
     case WRONG_CHILD:
         printf("mumsh: Child error\n");
         break;
 
-    case WRONG_REDIRECTION:
-        printf("mumsh: Redirection arguments wrong\n");
+    case WRONG_DUP_REDIRECT_IN:
+        printf("error: duplicated input redirection\n");
+        break;
+
+    case WRONG_DUP_REDIRECT_OUT:
+        printf("error: duplicated output redirection\n");
         break;
 
     default:
@@ -109,7 +117,21 @@ mumsh_wrong_cd_args(void)
 }
 
 void
-mumsh_wrong_path(const char* path)
+mumsh_wrong_cd_path(const char* path)
 {
-    printf("mumsh: cd: %s: No such file or directory\n", path);
+    printf("%s: No such file or directory\n", path);
+}
+
+void
+mumsh_wrong_redirect_in(const char* path)
+{
+    printf("%s: No such file or directory\n", path);
+    mumsh_error(WRONG_REDIRECT_IN);
+}
+
+void
+mumsh_wrong_redirect_out(const char* path)
+{
+    printf("%s: Permission denied\n", path);
+    mumsh_error(WRONG_REDIRECT_OUT);
 }
