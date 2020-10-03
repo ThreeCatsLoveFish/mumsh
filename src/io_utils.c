@@ -74,27 +74,27 @@ mumsh_error(int error)
         break;
 
     case FAIL_FORK:
-        printf("mumsh: Fork fail\n");
+        fputs("mumsh: Fork fail\n", stderr);
         break;
 
     case FAIL_PIPE:
-        printf("mumsh: Pipe wrong\n");
+        fputs("mumsh: Pipe wrong\n", stderr);
         break;
 
     case WRONG_PROGRAM:
-        printf("error: missing program\n");
+        fputs("error: missing program\n", stderr);
         break;
 
     case WRONG_CHILD:
-        printf("mumsh: Child error\n");
+        fputs("mumsh: Child error\n", stderr);
         break;
 
     case WRONG_DUP_REDIRECT_IN:
-        printf("error: duplicated input redirection\n");
+        fputs("error: duplicated input redirection\n", stderr);
         break;
 
     case WRONG_DUP_REDIRECT_OUT:
-        printf("error: duplicated output redirection\n");
+        fputs("error: duplicated output redirection\n", stderr);
         break;
 
     default:
@@ -106,32 +106,45 @@ mumsh_error(int error)
 void
 mumsh_wrong_cmd(const char* cmd)
 {
-    printf("%s: command not found\n", cmd);
+    fputs(cmd, stderr);
+    fputs(": command not found\n", stderr);
     mumsh_error(WRONG_COMMAND);
 }
 
 void
 mumsh_wrong_cd_args(void)
 {
-    printf("mumsh: cd: too many arguments\n");
+    fputs("mumsh: cd: too many arguments\n", stderr);
 }
 
 void
 mumsh_wrong_cd_path(const char* path)
 {
-    printf("%s: No such file or directory\n", path);
+    fputs(path, stderr);
+    fputs(": No such file or directory\n", stderr);
 }
 
 void
 mumsh_wrong_redirect_in(const char* path)
 {
-    printf("%s: No such file or directory\n", path);
+    fputs(path, stderr);
+    fputs(": No such file or directory\n", stderr);
     mumsh_error(WRONG_REDIRECT_IN);
 }
 
 void
 mumsh_wrong_redirect_out(const char* path)
 {
-    printf("%s: Permission denied\n", path);
+    fputs(path, stderr);
+    fputs(": Permission denied\n", stderr);
+    mumsh_error(WRONG_REDIRECT_OUT);
+}
+
+void
+mumsh_wrong_redirect_syntax(char sign)
+{
+    fputs("syntax error near unexpected token `", stderr);
+    fputc(sign, stderr);
+    fputs("'\n", stderr);
     mumsh_error(WRONG_REDIRECT_OUT);
 }

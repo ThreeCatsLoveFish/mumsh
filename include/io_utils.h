@@ -66,4 +66,11 @@ void mumsh_wrong_redirect_in(const char* path);
  */
 void mumsh_wrong_redirect_out(const char* path);
 
+/**
+ * Prints wrong sign and exits.
+ *
+ * @param  sign    String of sign
+ */
+void mumsh_wrong_redirect_syntax(char sign);
+
 #endif // MUMSH_IO_UTILS_H

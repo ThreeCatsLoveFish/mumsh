@@ -168,9 +168,10 @@ mumsh_redirection(char** argv, char* repos[3])
     if (repos[0] != NULL) {
         mumsh_redirection_in(repos[0], fd[0]);
     }
-    if (repos[1] > repos[2]) {
+    if (repos[1] != NULL) {
         mumsh_redirection_out(repos[1], fd[1]);
-    } else if (repos[2] != NULL) {
+    }
+    if (repos[2] != NULL) {
         mumsh_redirection_append(repos[2], fd[1]);
     }
     mumsh_exec_cmd(argv);
@@ -182,9 +183,10 @@ mumsh_redirection(char** argv, char* repos[3])
  * Handles the redirection signs in the command.
  *
  * @param  cmd     String of command
+ * @param  id      ID of command, 1 for in, 2 for out, 0 for both, -1 for no
  */
 static void
-mumsh_parse_cmd(char* cmd)
+mumsh_parse_cmd(char* cmd, int id)
 {
     char*   found            = NULL;
     char*   pos[buffer_size] = {0};
@@ -194,27 +196,49 @@ mumsh_parse_cmd(char* cmd)
     /* Finds the position of redirector. */
     found = strchr(cmd, '<');
     if (found) {
-        repos[0] = found + 1;
+        repos[0] = ++found;
     }
     found = strchr(cmd, '>');
     if (found) {
-        char*   tmp;
-        tmp = strchr(found + 1, '>');
-        if (tmp) {
-            repos[2] = tmp + 1;
+        if (*(++found) == '>') {
+            *found   = ' ';
+            repos[2] = ++found;
         } else {
-            repos[1] = found + 1;
+            repos[1] = found;
         }
     }
 
-    /* Fixes offset of position. */
+    /* Fixes offset of position and judge error. */
     for (size_t i = 0; i < 3; i++) {
         if (repos[i] == NULL) continue;
         while (*repos[i] == ' ') repos[i]++;
+        if (*repos[i] == '<' || *repos[i] == '>') {
+            mumsh_wrong_redirect_syntax(*repos[i]);
+        }
+    }
+    for (size_t i = 0; i < 3; i++) {
+        if (repos[i] == NULL || *repos[i] != '\0') {
+            continue;
+        }
+        if (id == 0 || id == 2) {
+            mumsh_wrong_redirect_syntax('\0');
+        } else {
+            mumsh_wrong_redirect_syntax('|');
+        }
+    }
+    
+    if (repos[0] && strchr(repos[0], '<')) {
+        mumsh_error(WRONG_DUP_REDIRECT_IN);
+    }
+    if (repos[1] && strchr(repos[1], '>')) {
+        mumsh_error(WRONG_DUP_REDIRECT_OUT);
+    }
+    if (repos[2] && strchr(repos[2], '>')) {
+        mumsh_error(WRONG_DUP_REDIRECT_OUT);
     }
 
     /* Parses the string, replace special characters with '\0`. */
-    for (int repeat = 0; (found = strsep(&cmd, " <>\n")) != NULL;) {
+    for (int repeat = 0; (found = strsep(&cmd, " <>")) != NULL;) {
         if (*found == 0) {
             continue;
         }
@@ -232,8 +256,20 @@ mumsh_parse_cmd(char* cmd)
 
     /* Executes the command. */
     if (repos[0] || repos[1] || repos[2]) {
+        if (pos[0] == 0) {
+            mumsh_error(WRONG_PROGRAM);
+        }
+        if (repos[0] && id != 0 && id != 1) {
+            mumsh_error(WRONG_DUP_REDIRECT_IN);
+        }
+        if ((repos[1] || repos[2]) && id != 0 && id != 2) {
+            mumsh_error(WRONG_DUP_REDIRECT_OUT);
+        }
         mumsh_redirection(pos, repos);
     } else {
+        if (id == -1 && pos[0] == 0) {
+            mumsh_error(WRONG_PROGRAM);
+        }
         mumsh_exec_cmd(pos);
     }
 }
@@ -264,7 +300,7 @@ mumsh_parse_pipe(char* cmd)
 
     /* No pipe. */
     if (count == 1) {
-        mumsh_parse_cmd(pos[0]);
+        mumsh_parse_cmd(pos[0], 0);
     }
     
     /* Execute every single command. */
@@ -293,7 +329,13 @@ mumsh_parse_pipe(char* cmd)
             if (i != count - 1) {
                 close(fd_curr[0]);
             }
-            mumsh_parse_cmd(pos[i]);
+            if (i == 0) {
+                mumsh_parse_cmd(pos[i], 1);
+            } else if (i == count - 1) {
+                mumsh_parse_cmd(pos[i], 2);
+            } else {
+                mumsh_parse_cmd(pos[i], -1);
+            }
         }
         if (fd_prev[0] != STDIN_FILENO) {
             close(fd_prev[0]);
