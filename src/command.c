@@ -302,6 +302,75 @@ mumsh_parse_pipe(char* cmd)
     if (count == 1) {
         mumsh_parse_cmd(pos[0], 0);
     }
+
+    /* Empty command. */
+    for (size_t i = 0, empty; i < count; i++) {
+        empty = 1;
+        for (size_t j = 0; pos[i][j] != '\0'; j++) {
+            if (pos[i][j] != ' ') {
+                empty = 0;
+            }
+            if (empty && pos[i][j + 1] == 0) {
+                mumsh_error(WRONG_PROGRAM);
+            }
+        }
+    }
+
+    /* Global duplicate redirection. */
+    for (size_t j = 0; pos[0][j] != '\0'; j++) {
+        if (pos[0][j] == '>') {
+            while (pos[0][++j] == ' ');
+            if (pos[0][j] == '>') {
+                mumsh_wrong_redirect_syntax('>');
+            } else if (pos[0][j] == '<') {
+                mumsh_wrong_redirect_syntax('<');
+            } else if (pos[0][j] == '\0') {
+                mumsh_wrong_redirect_syntax('|');
+            } else {
+                mumsh_error(WRONG_DUP_REDIRECT_OUT);
+            }
+        }
+    }
+    for (size_t i = 1; i < count - 1; i++) {
+        for (size_t j = 0; pos[i][j] != '\0'; j++) {
+            if (pos[i][j] == '<') {
+                while (pos[i][j] == ' ');
+                if (pos[i][j] == '>') {
+                    mumsh_wrong_redirect_syntax('>');
+                } else if (pos[i][j] == '<') {
+                    mumsh_wrong_redirect_syntax('<');
+                } else if (pos[i][j] == '\0') {
+                    mumsh_wrong_redirect_syntax('|');
+                } else {
+                    mumsh_error(WRONG_DUP_REDIRECT_IN);
+                }
+            }
+            if (pos[i][j] == '>') {
+                while (pos[i][++j] == ' ');
+                if (pos[i][j] == '>') {
+                    mumsh_wrong_redirect_syntax('>');
+                } else if (pos[i][j] == '<') {
+                    mumsh_wrong_redirect_syntax('<');
+                } else if (pos[i][j] == '\0') {
+                    mumsh_wrong_redirect_syntax('|');
+                } else {
+                    mumsh_error(WRONG_DUP_REDIRECT_OUT);
+                }
+            }
+        }
+    }
+    for (size_t j = 0; pos[count - 1][j] != '\0'; j++) {
+        if (pos[count - 1][j] == '<') {
+            while (pos[count - 1][++j] == ' ');
+            if (pos[count - 1][++j] == '>') {
+                mumsh_wrong_redirect_syntax('>');
+            } else if (pos[count - 1][++j] == '<') {
+                mumsh_wrong_redirect_syntax('<');
+            } else {
+                mumsh_error(WRONG_DUP_REDIRECT_IN);
+            }
+        }
+    }
     
     /* Execute every single command. */
     for (size_t i = 0; i < count; i++) {
