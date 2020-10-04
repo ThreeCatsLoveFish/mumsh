@@ -5,7 +5,7 @@
 #include "command.h"
 #include "error_status.h"
 #include "io_utils.h"
-#include "sign.h"
+#include "sign_utils.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -2,7 +2,7 @@
  * Course: 2020FA VE482
  * Author: Zhimin Sun
  */
-#include "sign.h"
+#include "sign_utils.h"
 
 const static char sign_code[] = {
     /* ' = */20,
