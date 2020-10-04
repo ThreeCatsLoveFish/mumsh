@@ -238,7 +238,7 @@ mumsh_parse_cmd(char* cmd, int id)
     }
 
     /* Parses the string, replace special characters with '\0`. */
-    for (int repeat = 0; (found = strsep(&cmd, " <>")) != NULL;) {
+    for (int repeat = 0; (found = strsep(&cmd, " <>|\n")) != NULL;) {
         if (*found == 0) {
             continue;
         }
@@ -275,104 +275,22 @@ mumsh_parse_cmd(char* cmd, int id)
 }
 
 /**
- * Parses the whole command.
- *
  * Handles the pipe in the command.
  *
- * @param  cmd     String of command
+ * @param  pos     Strings of command
+ * @param  count   Number of command
  */
 static void
-mumsh_parse_pipe(char* cmd)
+mumsh_pipe_cmd_handle(char** pos, size_t count)
 {
     __pid_t pid;
-    char*   found            = NULL;
-    char*   pos[buffer_size] = {0};
-    int     fd_prev[2]       = {0};
-    size_t  count            = 0;
-
-    /* Parses the string, replace pipe with '\0`. */
-    while ((found = strsep(&cmd, "|\n")) != NULL) {
-        if (*found == 0) {
-            continue;
-        }
-        pos[count++] = found;
-    }
+    int     fd_prev[2] = {0};
 
     /* No pipe. */
     if (count == 1) {
         mumsh_parse_cmd(pos[0], 0);
     }
-
-    /* Empty command. */
-    for (size_t i = 0, empty; i < count; i++) {
-        empty = 1;
-        for (size_t j = 0; pos[i][j] != '\0'; j++) {
-            if (pos[i][j] != ' ') {
-                empty = 0;
-            }
-            if (empty && pos[i][j + 1] == 0) {
-                mumsh_error(WRONG_PROGRAM);
-            }
-        }
-    }
-
-    /* Global duplicate redirection. */
-    for (size_t j = 0; pos[0][j] != '\0'; j++) {
-        if (pos[0][j] == '>') {
-            while (pos[0][++j] == ' ');
-            if (pos[0][j] == '>') {
-                mumsh_wrong_redirect_syntax('>');
-            } else if (pos[0][j] == '<') {
-                mumsh_wrong_redirect_syntax('<');
-            } else if (pos[0][j] == '\0') {
-                mumsh_wrong_redirect_syntax('|');
-            } else {
-                mumsh_error(WRONG_DUP_REDIRECT_OUT);
-            }
-        }
-    }
-    for (size_t i = 1; i < count - 1; i++) {
-        for (size_t j = 0; pos[i][j] != '\0'; j++) {
-            if (pos[i][j] == '<') {
-                while (pos[i][j] == ' ');
-                if (pos[i][j] == '>') {
-                    mumsh_wrong_redirect_syntax('>');
-                } else if (pos[i][j] == '<') {
-                    mumsh_wrong_redirect_syntax('<');
-                } else if (pos[i][j] == '\0') {
-                    mumsh_wrong_redirect_syntax('|');
-                } else {
-                    mumsh_error(WRONG_DUP_REDIRECT_IN);
-                }
-            }
-            if (pos[i][j] == '>') {
-                while (pos[i][++j] == ' ');
-                if (pos[i][j] == '>') {
-                    mumsh_wrong_redirect_syntax('>');
-                } else if (pos[i][j] == '<') {
-                    mumsh_wrong_redirect_syntax('<');
-                } else if (pos[i][j] == '\0') {
-                    mumsh_wrong_redirect_syntax('|');
-                } else {
-                    mumsh_error(WRONG_DUP_REDIRECT_OUT);
-                }
-            }
-        }
-    }
-    for (size_t j = 0; pos[count - 1][j] != '\0'; j++) {
-        if (pos[count - 1][j] == '<') {
-            while (pos[count - 1][++j] == ' ');
-            if (pos[count - 1][++j] == '>') {
-                mumsh_wrong_redirect_syntax('>');
-            } else if (pos[count - 1][++j] == '<') {
-                mumsh_wrong_redirect_syntax('<');
-            } else {
-                mumsh_error(WRONG_DUP_REDIRECT_IN);
-            }
-        }
-    }
-    
-    /* Execute every single command. */
+    /* With pipe. */
     for (size_t i = 0; i < count; i++) {
         int fd_curr[2];
 
@@ -422,8 +340,96 @@ mumsh_parse_pipe(char* cmd)
     exit(NORMAL_EXIT);
 }
 
+/**
+ * Handles the error in the command.
+ *
+ * @param  pos     Strings of command
+ * @param  cmd     String of command
+ * @param  count   Number of command
+ */
+static void
+mumsh_error_cmd_handle(char** pos, char* cmd, size_t count)
+{
+    for (size_t i = 0, dup = 0; i < count; i++) {
+        if (pos[i][0] == '|') {
+            mumsh_error(WRONG_PROGRAM);
+        }
+        for (size_t j = 0, empty = 1; pos[i][j] != '|'; j++, empty = 0) {
+            if (pos[i][j] == '\n') {
+                if (i > 0 && i == count - 1 && empty) {
+                    /* Extra input. */
+                    mumsh_multi_prompt(&pos[i][j]);
+                    mumsh_parse(cmd);
+                    return;
+                } else {
+                    break;
+                }
+            }
+            while (pos[i][j] == ' ') {
+                j++;
+            }
+            if (pos[i][j] == '|') {
+                if (empty == 1) {
+                    mumsh_error(WRONG_PROGRAM);
+                } else {
+                    break;
+                }
+            } else if (pos[i][j] == '\n' && i > 0 && i == count - 1 && empty) {
+                /* Extra input. */
+                mumsh_multi_prompt(&pos[i][j]);
+                mumsh_parse(cmd);
+                return;
+            }
+            if (pos[i][j] == '<') {
+                while (pos[i][++j] == ' ');
+                if (pos[i][j] == '>' || pos[i][j] == '<' || pos[i][j] == '|') {
+                    mumsh_wrong_redirect_syntax(pos[i][j]);
+                } else if (pos[i][j] == '\n' && i == count - 1) {
+                    /* Extra input. */
+                    mumsh_multi_prompt(&pos[i][j]);
+                    mumsh_parse(cmd);
+                    return;
+                } else if (i > 0) {
+                    dup = 1;
+                }
+            }
+            if (pos[i][j] == '>') {
+                if (pos[i][j + 1] == '>') {
+                    j++;
+                }
+                while (pos[i][++j] == ' ');
+                if (pos[i][j] == '>' || pos[i][j] == '<' || pos[i][j] == '|') {
+                    mumsh_wrong_redirect_syntax(pos[i][j]);
+                } else if (pos[i][j] == '\n' && i == count - 1) {
+                    /* Extra input. */
+                    mumsh_multi_prompt(&pos[i][j]);
+                    mumsh_parse(cmd);
+                    return;
+                } else if (i < count - 1) {
+                    dup = 2;
+                }
+            }
+        }
+        if (i == count - 1 && dup == 1) {
+            mumsh_error(WRONG_DUP_REDIRECT_IN);
+        } else if (i == count - 1 && dup == 2) {
+            mumsh_error(WRONG_DUP_REDIRECT_OUT);
+        }
+    }
+    while (strsep(&cmd, "|"));
+}
+
 void
 mumsh_parse(char* cmd)
 {
-    mumsh_parse_pipe(cmd);
+    char*   pos[buffer_size] = {0};
+    size_t  count            = 0;
+
+    pos[count++] = cmd;
+    for (char* found = cmd; (found = strchr(found, '|')) != NULL;) {
+        pos[count++] = ++found;
+    }
+
+    mumsh_error_cmd_handle(pos, cmd, count);
+    mumsh_pipe_cmd_handle(pos, count);
 }

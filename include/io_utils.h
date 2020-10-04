@@ -13,6 +13,13 @@
 void mumsh_prompt(char* buffer);
 
 /**
+ * Prompts user for newline input in mumsh.
+ * 
+ * @param  buffer   Pointer to buffer
+ */
+void mumsh_multi_prompt(char* buffer);
+
+/**
  * Handles the `SIGINT` signal for parent.
  * 
  * @param  signal  Input signal

@@ -66,6 +66,14 @@ mumsh_prompt(char* buffer)
 }
 
 void
+mumsh_multi_prompt(char* buffer)
+{
+    printf("> ");
+    fflush(stdout);
+    mumsh_getcmd(buffer);
+}
+
+void
 mumsh_error(int error)
 {
     switch (error) {
