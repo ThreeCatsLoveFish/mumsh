@@ -6,6 +6,22 @@
 #define MUMSH_COMMAND_H
 
 /**
+ * Handles background job.
+ *
+ * @param  cmd     String of command
+ * @return         0 for fg, 1 for bg
+ */
+int mumsh_exec_bg(const char* cmd);
+
+/**
+ * Handles `jobs` command.
+ *
+ * @param  cmd     String of command
+ * @return         0 for fg, 1 for bg
+ */
+int mumsh_exec_jobs(const char* cmd);
+
+/**
  * Handles normal exit.
  *
  * @param  cmd     String of command

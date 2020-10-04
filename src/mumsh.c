@@ -5,15 +5,23 @@
 #include "command.h"
 #include "error_status.h"
 #include "io_utils.h"
+#include "jobs.h"
 #include <signal.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #define buffer_size 1026
 
+/* A single-linked list, dealing with jobs. */
+extern jobs_t* head;
+
 int
-main()
+main(void)
 {
+    head = jobs_init();
+    if (!head) {
+        mumsh_error(NO_MEMORY);
+    }
     while (1) {
         __pid_t  pid;
         char     buffer[buffer_size];
@@ -32,6 +40,11 @@ main()
             continue;
         }
 
+        /* Execute `jobs` command. */
+        if (mumsh_exec_jobs(buffer)) {
+            continue;
+        }
+
         /* Handle CTRL-C for child. */
         signal(SIGINT, interrupt_child);
 
@@ -42,9 +55,14 @@ main()
             mumsh_parse(buffer);
         }
         
-        /* Parent waits until child killed. */
-        if (wait(NULL) != pid) {
-            mumsh_error(WRONG_CHILD);
+        /* Handle background jobs. */
+        if (mumsh_exec_bg(buffer)) {
+            jobs_insert(buffer, pid);
+        } else {
+            /* Parent waits until child killed. */
+            if (waitpid(pid, NULL, 0) != pid) {
+                mumsh_error(WRONG_CHILD);
+            }
         }
     }
 }

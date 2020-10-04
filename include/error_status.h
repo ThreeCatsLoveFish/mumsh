@@ -18,6 +18,7 @@ typedef enum error {
     WRONG_REDIRECT_IN      = 9,
     WRONG_REDIRECT_OUT     = 10,
     WRONG_PROGRAM          = 11,
+    NO_MEMORY              = 12,
 } error_t;
 
 typedef enum redirection {

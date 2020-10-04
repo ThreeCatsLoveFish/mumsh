@@ -5,6 +5,7 @@
 #include "command.h"
 #include "error_status.h"
 #include "io_utils.h"
+#include "jobs.h"
 #include "sign_utils.h"
 #include <fcntl.h>
 #include <stdio.h>
@@ -21,7 +22,29 @@ void
 mumsh_exec_exit(const char* cmd)
 {
     if (strncmp(cmd, "exit", 4) == 0) {
+        jobs_clean();
         mumsh_error(NORMAL_EXIT);
+    }
+}
+
+int
+mumsh_exec_bg(const char* cmd)
+{
+    if (strchr(cmd, '&') != NULL) {
+        return 1;
+    } else {
+        return NORMAL_EXIT;
+    }
+}
+
+int
+mumsh_exec_jobs(const char* cmd)
+{
+    if (strncmp(cmd, "jobs", 4) == 0) {
+        jobs_traverse();
+        return 1;
+    } else {
+        return NORMAL_EXIT;
     }
 }
 
