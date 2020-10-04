@@ -5,6 +5,7 @@
 #include "command.h"
 #include "error_status.h"
 #include "io_utils.h"
+#include "sign.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,6 +82,34 @@ mumsh_pwd(const char* cmd)
 }
 
 /**
+ * Decodes special signs.
+ *
+ * @param   cmd     Command
+ */
+static void
+mumsh_decode(char* cmd)
+{
+    for (size_t i = 0; cmd[i] != '\0'; i++) {
+        sign_decode(&cmd[i]);
+    }
+}
+
+/**
+ * Decodes special signs.
+ *
+ * @param   cmd     Command
+ */
+static void
+mumsh_decode_cmd(char** cmd)
+{
+    for (size_t i = 0; cmd[i] != 0; i++) {
+        for (size_t j = 0; cmd[i][j] != '\0'; j++) {
+            sign_decode(&cmd[i][j]);
+        }
+    }
+}
+
+/**
  * Executes command.
  *
  * @param   cmd     Command and arguments
@@ -91,6 +120,7 @@ mumsh_exec_cmd(char** cmd)
     int error;
 
     mumsh_pwd(cmd[0]);
+    mumsh_decode_cmd(cmd);
     error = execvp(cmd[0], cmd);
     if (error < 0) {
         mumsh_wrong_cmd(cmd[0]);
@@ -104,10 +134,11 @@ mumsh_exec_cmd(char** cmd)
  * @param   fd_in       File descriptor for input
  */
 static void
-mumsh_redirection_in(const char* filename, int fd_in)
+mumsh_redirection_in(char* filename, int fd_in)
 {
     int file;
 
+    mumsh_decode(filename);
     file = open(filename, O_RDONLY);
     if (file < 0) {
         mumsh_wrong_redirect_in(filename);
@@ -123,10 +154,11 @@ mumsh_redirection_in(const char* filename, int fd_in)
  * @param   fd_out      File descriptor for output
  */
 static void
-mumsh_redirection_out(const char* filename, int fd_out)
+mumsh_redirection_out(char* filename, int fd_out)
 {
     int file;
 
+    mumsh_decode(filename);
     file = open(filename, O_WRONLY|O_CREAT|O_TRUNC, 0777);
     if (file < 0) {
         mumsh_wrong_redirect_out(filename);
@@ -142,10 +174,11 @@ mumsh_redirection_out(const char* filename, int fd_out)
  * @param   fd_out      File descriptor for output
  */
 static void
-mumsh_redirection_append(const char* filename, int fd_out)
+mumsh_redirection_append(char* filename, int fd_out)
 {
     int file;
 
+    mumsh_decode(filename);
     file = open(filename, O_WRONLY|O_CREAT|O_APPEND, 0777);
     if (file < 0) {
         mumsh_wrong_redirect_out(filename);
@@ -419,8 +452,13 @@ mumsh_error_cmd_handle(char** pos, char* cmd, size_t count)
     while (strsep(&cmd, "|"));
 }
 
-void
-mumsh_parse(char* cmd)
+/**
+ * Handles the error in the command.
+ *
+ * @param  cmd     String of command
+ */
+static void
+mumsh_parse_pipe(char* cmd)
 {
     char*   pos[buffer_size] = {0};
     size_t  count            = 0;
@@ -432,4 +470,60 @@ mumsh_parse(char* cmd)
 
     mumsh_error_cmd_handle(pos, cmd, count);
     mumsh_pipe_cmd_handle(pos, count);
+}
+
+/**
+ * Encodes special signs.
+ *
+ * @param   cmd     Command
+ */
+static void
+mumsh_encode(char* cmd)
+{
+    char*   dquote;
+    char*   next;
+    char*   squote;
+    char*   start;
+
+    squote = strchr(cmd, '\'');
+    dquote = strchr(cmd, '\"');
+    if (!squote && !dquote) {
+        mumsh_parse_pipe(cmd);
+        return;
+    } else if (!squote) {
+        start = dquote;
+        next = strchr(dquote + 1, '\"');
+    } else if (!dquote) {
+        start = squote;
+        next = strchr(squote + 1, '\'');
+    } else {
+        if (squote < dquote) {
+            start = squote;
+            next = strchr(squote + 1, '\'');
+        } else {
+            start = dquote;
+            next = strchr(dquote + 1, '\"');
+        }
+    }
+    if (!next) {
+        mumsh_multi_prompt(strchr(cmd, '\0'));
+        mumsh_parse(cmd);
+        return;
+    } else {
+        for (; start + 1 != next; start++) {
+            *start = *(start + 1);
+            sign_encode(start);
+        }
+        for (; *start != '\0'; start++) {
+            *start = *(start + 2);
+        }
+    }
+    mumsh_parse(cmd);
+    return;
+}
+
+void
+mumsh_parse(char* cmd)
+{
+    mumsh_encode(cmd);
 }
