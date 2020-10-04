@@ -119,6 +119,9 @@ mumsh_exec_cmd(char** cmd)
 {
     int error;
 
+    if (cmd[0] == NULL) {
+        exit(0);
+    }
     mumsh_pwd(cmd[0]);
     mumsh_decode_cmd(cmd);
     error = execvp(cmd[0], cmd);
