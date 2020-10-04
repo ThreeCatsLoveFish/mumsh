@@ -20,4 +20,13 @@ typedef enum error {
     WRONG_PROGRAM          = 11,
 } error_t;
 
+typedef enum redirection {
+    NONE    = 0,
+    BOTH    = 1,
+    DUP_IN  = 2,
+    DUP_OUT = 3,
+    SIN_IN  = 4,
+    SIN_OUT = 5,
+} redirection_t;
+
 #endif // MUMSH_ERROR_STATUS_H
